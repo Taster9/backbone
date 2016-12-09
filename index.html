@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Contact_1</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="libs/jquery.min.js"></script>
+    <script src="libs/lodash.js"></script>
+    <script src="libs/backbone.js"></script>
+
+    <!--Templates-->
+    <script type="text/template" id="chat-template">
+        <li>
+            <a href='chat.php?id=<%= id %>'>
+                <%= race %> <%= sexe %> : <%= nom %>, <%= age %> ans.
+            </a>
+            <div class='imageChat' style='background-image:url(img/<%= url %>.jpg)'>
+                <img src='img/<%= url %>.jpg' alt='<%= nom %>'>
+            </div>
+            <p style="display:<%= display %>;">URL : <%= url %></p>
+        </li>
+    </script>
+
+    <script>
+        (function( $, Backbone  )
+        {
+            // Données et models
+            /* Chat { id:1, race:"Siamois", sexe:"femelle", nom:"Pipi", age:1, url:"europeen-pipi" }  */
+            var ChatModel = Backbone.Model.extend
+            (
+                    {
+                        defaults :
+                        {
+                            display : "",
+                            race : "",
+                            sexe : "",
+                            nom : "",
+                            age : 0,
+                            url : ""
+                        }
+                    }
+            );
+            /* ContactCollection [ new Contact(), new Contact() ]  */
+            var ChatsCollection = Backbone.Collection.extend
+            (
+                    {
+                        model : ChatModel
+                    }
+            );
+
+            // Vues
+            var ChatView = Backbone.View.extend
+            (
+                    {
+                        tagName : "li"
+                    }
+            );
+
+            var ChatListView = Backbone.View.extend
+            (
+                    {
+                        collection : null,
+                        template : _.template( $( "#chat-template" ).html() ),
+                        initialize : function()
+                        {
+                            // Liaison événementielle entre la collection et la vue
+                            // !! Attention à la portée du callback !!
+                            // this.collection.on( "add", this.render, this );
+                            // Portée préservée en utilisant jquery
+                            //this.collection.on( "add", $.proxy( this.render, this ) );
+                            // ! Zombie view : best practice
+                            this.listenTo( this.collection, "add", this.render );
+                            this.render();
+                        },
+                        render : function(){
+                            var self = this;
+                            this.$el.empty();
+                            this.collection.each(
+                                    function(chat){
+                                        self.$el.append( self.template ( chat.toJSON() ) )
+                                        console.log( chat.toJSON() );
+                                    }
+                            );
+
+                        },
+                        events : {
+                            "click li": "doLink"
+                        },
+                        doLink : function(event){
+                            //Le bouton cliqué est référencé dans event.currentTarget
+                            var target = $( event.target );
+                            target.parent().find("p").css( "display", "block" );
+                        }
+                    }
+            );
+            //Données mockups correspondant à la liste des chats
+            var chats;
+
+            /**
+             * Document ready event
+             * alias de $(document).ready( function(){} );
+             */
+            $( function ()
+                    {
+                        /**
+                         *  Réception des données du serveur
+                         *
+                         */
+                        var afficher = function()
+                        {
+                            chats = new ChatsCollection();
+
+                            // Annule le message de chargement
+                            $( "#loading").remove();
+
+                            // Renseigne les éléments de la liste de chats
+                            var chatListView = new ChatListView
+                            (
+                                    {
+                                        el          : "#chat_list"
+                                        , collection: chats
+                                    }
+                            );
+
+                            // On ajoute les données APRÈS la création de la vue
+                            // pour que l'événement add soit utilisé
+                            chats.add( new ChatModel( { id : 1, race : "Siamois", nom : "Bernard", age : 13, sexe : "mâle", url : "siamois-bernard", display : "none" } ) );
+                            chats.add( new ChatModel( { id : 2, race : "Chat de gouttière", nom : "Bérénice", age : 7, sexe : "femelle", url : "gouttiere-berenice", display : "none" } ) );
+                            chats.add( new ChatModel( { id : 3, race : "Chat européen", nom : "Pipi", age : 1, sexe : "femelle", url : "europeen-pipi", display : "none" } ) );
+                            chats.add( new ChatModel( { id : 4, race : "Siamois", nom : "Tapiou", age : 11, sexe : "mâle", url : "siamois-tapiou", display : "none" } ) );
+                            chats.add( new ChatModel( { id : 5, race : "Bleu russe", nom : "Matisse", age : 5, sexe : "mâle", url : "bleurusse-matisse", display : "none" } ) );
+
+                        };
+
+
+                        $( "body" ).append( "<h1 id='loading'>Merci de patienter pendant le chargement des données des chats</h1>" );
+                        // Active une pseudo requête async HTTP
+                        setTimeout( afficher, 1000 );
+
+                    }
+            );
+        })(jQuery, Backbone );
+    </script>
+</head>
+<body>
+
+    <ul id="chat_list">
+    </ul>
+
+</body>
+</html>
